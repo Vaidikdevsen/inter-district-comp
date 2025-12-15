@@ -13,7 +13,6 @@ int angle = 0;
 int direction = 1;
 int distance = -1;
 int lastAngle = -1;
-int lastDistance = -2;
 
 unsigned long lastDistanceTime = 0;
 const unsigned long distanceInterval = 1500;
@@ -43,6 +42,30 @@ void loop() {
     lastDistanceTime = millis();
   }
 
+  int targetAngle = angle + direction * 5;
+
+  if (targetAngle >= 180) {
+    targetAngle = 180;
+    direction = -1;
+  } else if (targetAngle <= 0) {
+    targetAngle = 0;
+    direction = 1;
+  }
+
+  if (targetAngle > angle) {
+    for (int a = angle; a <= targetAngle; a++) {
+      myServo.write(a);
+      delay(15);
+    }
+  } else {
+    for (int a = angle; a >= targetAngle; a--) {
+      myServo.write(a);
+      delay(15);
+    }
+  }
+
+  angle = targetAngle;
+
   if (angle != lastAngle) {
     lcd.setCursor(6, 0);
     lcd.print("    ");
@@ -52,37 +75,21 @@ void loop() {
   }
 
   lcd.setCursor(6, 1);
-  lcd.print("             "); // clear previous text
+  lcd.print("             ");
   lcd.setCursor(6, 1);
 
-  if (distance == -1 || distance > 500) {
-    lcd.print("Out of Range");
-  } else if (distance == 0) {
-    lcd.print("000cm");
+  if (distance <= 0 || distance > 500) {
+    lcd.print("000 cm");
   } else {
     if (distance < 10) lcd.print("00");
     else if (distance < 100) lcd.print("0");
     lcd.print(distance);
-    lcd.print("cm");
+    lcd.print(" cm");
   }
-
-  lastDistance = distance;
 
   Serial.print(angle);
   Serial.print(",");
   Serial.println(distance);
-
-  angle += direction;
-  myServo.write(angle);
-  delay(15);
-
-  if (angle >= 180) {
-    angle = 180;
-    direction = -1;
-  } else if (angle <= 0) {
-    angle = 0;
-    direction = 1;
-  }
 }
 
 int getDistance() {
@@ -94,12 +101,11 @@ int getDistance() {
 
   long duration = pulseIn(ECHO_PIN, HIGH, 35000);
 
-  if (duration == 0) return -1;
+  if (duration == 0) return 0;
 
   int d = duration * 0.034 / 2;
 
-  if (d == 0) return 0;
-  if (d < 0 || d > 500) return -1;
+  if (d <= 0 || d > 500) return 0;
 
   return d;
 }
